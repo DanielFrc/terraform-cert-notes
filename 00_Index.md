@@ -1,6 +1,6 @@
 ## Progress
 
-- [ ] [[01_Fundamentals]]
+- [ ] Fundamentals
 - [ ] Core Workflow
 - [ ] Modules
 - [ ] Providers
@@ -9,7 +9,7 @@
 
 ## Labs
 
-- [[Lab XX - Title]]
+- Lab XX - Title
 
 ## Weak areas
 
@@ -20,4 +20,3 @@
 ## Resources
 
 - [Hashicorp Certified Terraform Associate 004 - Exam Prep Course](https://www.udemy.com/share/10eT9x3@0HAc1k-kE0cL8Y31RBhEeOQCwGDXfkn6QBstU63cc9CD4Fyf-tiTsClMR0Lcdp2N/) 
-- [[Temporary Access Keys to AWS]]
