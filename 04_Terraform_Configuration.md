@@ -147,3 +147,117 @@ During `init`, Terraform downloads providers from the registry (or a configured 
 - `provider` block `configuration_aliases` for module authors
 - Private provider registries (Terraform Enterprise)
 - AWS default tags in the provider block (`default_tags`)
+
+## `resource` Block
+
+The `resource` block is the core element in Terraform. It declares infrastructure that Terraform should **create, update, and destroy** to match the desired configuration.
+
+Syntax:
+
+```hcl
+resource "<TYPE>" "<NAME>" {
+  # arguments and nested blocks
+}
+```
+
+- **Type** — Identifies what to manage (e.g., `aws_dynamodb_table`). Defined by the provider and documented in the Terraform Registry.
+- **Name** — A local label you choose. Used to reference the resource elsewhere in the configuration. Must be unique per resource type within a module.
+- **Arguments** — Configure the resource (e.g., `billing_mode`, `runtime`). Required vs. optional arguments depend on the resource type.
+- **Nested blocks** — Structured sub-configuration (e.g., `attribute {}`, `environment {}`).
+
+> **Exam tip:** Address a resource as `<TYPE>.<NAME>.<ATTRIBUTE>` — for example, `aws_iam_role.lambda_iam_role.arn`. This differs from `data` sources (`data.aws_ami.example.id`) and `module` outputs (`module.vpc.vpc_id`).
+
+### Resource vs. `data` Source
+
+| Block | Purpose | Lifecycle |
+|---|---|---|
+| `resource` | Manage infrastructure Terraform creates and owns | Create, read, update, delete |
+| `data` | Read existing infrastructure or computed values | Read only — never created or destroyed by Terraform |
+
+Use `resource` when Terraform should manage the object. Use `data` when you need information about something that already exists or is computed outside Terraform (e.g., latest AMI, current AWS account ID).
+
+> **Common mistake:** Using a `resource` block for objects you did not create and do not want Terraform to destroy (e.g., a shared VPC managed by another team). Use a `data` source instead.
+
+### Meta-Arguments
+
+Meta-arguments apply to any resource block, regardless of provider:
+
+| Meta-argument | Purpose |
+|---|---|
+| `provider` | Select a non-default or aliased provider (see [[#Multiple Provider Instances (Aliases)]]) |
+| `depends_on` | Declare explicit dependency when references alone are not enough |
+| `count` | Create multiple similar resources from one block |
+| `for_each` | Create multiple resources from a map or set |
+| `lifecycle` | Control create/destroy behavior (`create_before_destroy`, `prevent_destroy`, `ignore_changes`) |
+
+> **Exam tip:** `count` and `for_each` are mutually exclusive on the same block. Prefer `for_each` for most production use cases — resource addresses use map keys instead of numeric indexes.
+
+### Example of a Resource
+
+```hcl
+resource "aws_dynamodb_table" "basic_dynamodb_table" {
+  name         = local.dynamodb_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = local.common_tags
+}
+```
+
+- Top-level keys (`name`, `billing_mode`) are **arguments**.
+- `attribute {}` and `ttl {}` are **nested blocks** — common on AWS resources.
+- After `terraform apply`, Terraform stores resource attributes in **state** and tracks them on future plans.
+
+### Resource Referencing
+
+Resource referencing connects blocks by passing values from one resource to another. When one resource references another's attributes, Terraform creates an **implicit dependency** and orders operations correctly.
+
+Reference syntax: `<TYPE>.<NAME>.<ATTRIBUTE>`
+
+```hcl
+resource "aws_lambda_function" "basic_lambda_function" {
+  filename      = data.archive_file.basic_lambda.output_path
+  function_name = local.lambda_function_name
+  description   = "Basic lambda function deployed with Terraform"
+  role          = aws_iam_role.lambda_iam_role.arn   # implicit dependency on IAM role
+  handler       = "lambda_function.lambda_handler"
+  code_sha256   = data.archive_file.basic_lambda.output_base64sha256
+
+  runtime = "python3.12"
+  timeout = 10
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.basic_dynamodb_table.name
+      ENVIRONMENT         = var.environment
+      LOG_LEVEL           = "info"
+    }
+  }
+
+  tags = local.common_tags
+}
+```
+
+This example shows three reference types in one block:
+
+- **Resource** — `aws_iam_role.lambda_iam_role.arn` (managed by Terraform)
+- **Data source** — `data.archive_file.basic_lambda.output_path` (read-only)
+- **Variable** — `var.environment` (input from outside the resource)
+
+> **Real-world:** Chaining references (Lambda → IAM role → DynamoDB table name) is how Terraform builds a dependency graph. Avoid hardcoded ARNs or table names — they break portability across environments.
+
+> **Common mistake:** Referencing a resource before it exists in configuration, or using the wrong attribute name from the provider docs. Run `terraform plan` to catch missing or invalid references early.
+
+> **Exam tip:** Removing a `resource` block from configuration and running `terraform apply` schedules that resource for **destroy**. Terraform does not delete resources that are only removed from references but still declared in code.
+
+See also: [[01_Fundamentals#Resource Referencing]] and [[02_Terraform_Workflow#Dependencies]].

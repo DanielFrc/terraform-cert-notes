@@ -112,11 +112,11 @@ resource "aws_subnet" "public" {
 
 ## **Terraform Editions**
 
-| Edition | Description | Typical Use |
-|---|---|---|
-| **Terraform Community Edition** | Free CLI (`terraform` binary). Local or remote state. | Individual developers, small teams, CI/CD pipelines |
-| **HCP Terraform** | HashiCorp Cloud Platform SaaS (formerly Terraform Cloud). Remote state, run history, collaboration, policy (Sentinel on higher tiers). | Teams needing shared state, RBAC, and run workflows |
-| **Terraform Enterprise** | Self-hosted version of HCP Terraform. Same features, runs in your datacenter. | Regulated industries, air-gapped environments |
+| Edition                         | Description                                                                                                                            | Typical Use                                         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Terraform Community Edition** | Free CLI (`terraform` binary). Local or remote state.                                                                                  | Individual developers, small teams, CI/CD pipelines |
+| **HCP Terraform**               | HashiCorp Cloud Platform SaaS (formerly Terraform Cloud). Remote state, run history, collaboration, policy (Sentinel on higher tiers). | Teams needing shared state, RBAC, and run workflows |
+| **Terraform Enterprise**        | Self-hosted version of HCP Terraform. Same features, runs in your datacenter.                                                          | Regulated industries, air-gapped environments       |
 
 > **Exam tip:** "Terraform Cloud" was rebranded to **HCP Terraform**. Exam questions may use either name. Community Edition has no built-in remote state or Sentinel — you configure a remote backend (e.g., S3 + DynamoDB) yourself.
 
