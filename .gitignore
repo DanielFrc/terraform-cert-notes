@@ -1,0 +1,9 @@
+# Block the entire Obsidian configuration folder
+.obsidian/
+
+# If you use the Obsidian Git plugin, block its backup cache
+.obsidian/plugins/obsidian-git/
+
+# Block system files
+.DS_Store
+Thumbs.db
