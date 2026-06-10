@@ -99,3 +99,8 @@ These settings improve readability but are not required:
 ## Contributing
 
 This is a personal study vault, but suggestions and corrections are welcome via issues or pull requests.
+
+## Disclaimer
+These are my personal study notes taken while completing the Udemy — Terraform Associate 004 course on Udemy. 
+The content consists of my own interpretations, summaries, and self-directed expansions enriched using AI tools for educational purposes. This repository is not affiliated with, endorsed by, or connected to the course instructor or Udemy.
+
