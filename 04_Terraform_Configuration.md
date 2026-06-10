@@ -13,7 +13,7 @@ Example of a provider configuration block:
 ```hcl
 provider "aws" {
   region  = "us-east-1"
-  profile = "terraform-labs"
+  profile = "example-profile"
 }
 ```
 

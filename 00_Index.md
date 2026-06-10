@@ -35,7 +35,7 @@ Track topics that need more study. Link notes here as they are created.
 
 ## Resources
 
-- [HashiCorp Certified Terraform Associate 004 — Exam Prep Course](https://www.udemy.com/share/10eT9x3@0HAc1k-kE0cL8Y31RBhEeOQCwGDXfkn6QBstU63cc9CD4Fyf-tiTsClMR0Lcdp2N/)
+- [Udemy — Terraform Associate 004 courses](https://www.udemy.com/courses/search/?q=terraform+associate+004)
 - [Terraform Documentation](https://developer.hashicorp.com/terraform/docs)
 - [Terraform Registry](https://registry.terraform.io/)
 - [Terraform Associate 004 Exam Guide](https://developer.hashicorp.com/certifications/infrastructure-automation)
