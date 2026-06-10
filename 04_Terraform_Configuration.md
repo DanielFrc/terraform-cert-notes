@@ -141,12 +141,133 @@ During `init`, Terraform downloads providers from the registry (or a configured 
 - [[03_Terraform_File_Structure#Common Terraform Files]] — where to place provider and version blocks
 - [[01_Fundamentals#Core Components]] — providers as a core component
 
-## To Be Defined
+## Provider Configuration in Modules
 
-- Provider configuration inheritance in nested modules
-- `provider` block `configuration_aliases` for module authors
-- Private provider registries (Terraform Enterprise)
-- AWS default tags in the provider block (`default_tags`)
+Child modules do **not** automatically inherit `provider` blocks from the root module. The root module configures providers; child modules **receive** them through implicit inheritance (default provider) or explicit `providers` mapping on the `module` block.
+
+### Default Inheritance
+
+If a child module uses `provider "aws"` without an alias, it inherits the root module's default AWS provider configuration automatically. No extra mapping is required.
+
+```hcl
+# Root module — providers.tf
+provider "aws" {
+  region = "us-east-1"
+}
+
+# Root module — main.tf
+module "network" {
+  source = "./modules/network"
+  # child module uses root's default aws provider
+}
+```
+
+### Explicit Provider Mapping
+
+When a module uses **aliased** providers, the root module must pass them in using the `providers` meta-argument:
+
+```hcl
+# Child module — expects aliased provider (see configuration_aliases below)
+resource "aws_s3_bucket" "replica" {
+  provider = aws.replica
+  bucket   = var.bucket_name
+}
+
+# Root module — pass aliased provider into module
+module "replication" {
+  source = "./modules/replication"
+
+  providers = {
+    aws.replica = aws.west   # map module's aws.replica to root's aws.west
+  }
+
+  bucket_name = "logs-west"
+}
+```
+
+> **Exam tip:** The `providers` map keys use the **module's** provider configuration names (including alias). Values reference **root module** provider configurations.
+
+> **Common mistake:** Defining `provider "aws"` blocks inside a reusable module without declaring `configuration_aliases`. Terraform will reject passing aliased providers from the root.
+
+## `configuration_aliases` (Module Authors)
+
+Reusable modules that need non-default providers must declare which provider aliases they accept inside a `terraform` block:
+
+```hcl
+# modules/replication/versions.tf
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.replica]
+    }
+  }
+}
+```
+
+- Tells Terraform the module can accept an `aws` provider with alias `replica`.
+- The module itself does **not** configure credentials or region — the root module does that and passes the configured provider in.
+- Keeps modules portable: the same module can target different accounts or regions depending on how the caller maps providers.
+
+> **Real-world:** Module authors should never hardcode `region` or credentials. Accept providers from the caller and document required `providers` mappings in the module README.
+
+## AWS Default Tags (`default_tags`)
+
+Apply tags to all AWS resources managed by a provider without repeating `tags` on every resource block:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+      Project     = var.project_name
+    }
+  }
+}
+```
+
+- Tags set here are merged with resource-level `tags`. Resource-level tags override `default_tags` on key collision.
+- Applies only to resources created through that provider configuration — useful for multi-account setups with separate provider blocks.
+- Reduces tag drift and satisfies organizational tagging policies (cost allocation, ownership, compliance).
+
+> **AWS SAA-C03 tie-in:** Consistent tagging supports Cost Explorer, Resource Groups, and SCP enforcement. Centralizing tags in the provider block is cleaner than tagging every resource individually.
+
+> **Exam tip:** `default_tags` is a provider-level setting, not a resource meta-argument. It does not replace resource-specific tags you need for unique identification (e.g., `Name` per instance).
+
+## Private Provider Registries
+
+Organizations using **Terraform Enterprise** or **HCP Terraform** can host private providers instead of relying on the public Terraform Registry.
+
+| Feature | Public Registry | Private Registry |
+|---|---|---|
+| Access | Open to all | Restricted to organization |
+| Use case | Community and HashiCorp providers | Internal providers, air-gapped environments |
+| Source address | `hashicorp/aws` | `<hostname>/<namespace>/<name>` |
+
+Example with a private registry:
+
+```hcl
+terraform {
+  required_providers {
+    mycloud = {
+      source  = "app.terraform.io/my-org/mycloud"
+      version = "~> 1.0"
+    }
+  }
+}
+```
+
+- `terraform login` authenticates to HCP Terraform / Terraform Enterprise and enables downloading private providers during `init`.
+- Private registries also host **private modules** and **policy libraries** (Sentinel) on enterprise tiers.
+- Provider mirrors can cache public providers internally for security and compliance without publishing custom providers.
+
+> **Real-world:** Regulated industries use private registries to vet provider binaries before they reach production CI pipelines. Pair with network egress controls and signed provider verification.
+
+> **Exam tip:** Know that `required_providers` `source` uses the format `hostname/namespace/type` — not just `hashicorp/aws`. Terraform 0.13+ requires an explicit source for all providers.
 
 ## `resource` Block
 
