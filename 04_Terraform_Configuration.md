@@ -80,7 +80,7 @@ resource "aws_s3_bucket" "west" {
 }
 ```
 
-> **Exam tip:** The default provider has no alias. Referenced as `aws.<resource>`. Aliased providers are referenced as `aws.<alias>.<resource>` in the `provider` meta-argument.
+> **Exam tip:** The default provider has no alias. Use the `provider` meta-argument with an alias reference (e.g., `provider = aws.west`). Omit it to use the default provider configuration.
 
 ## Authentication Best Practices
 
@@ -134,12 +134,6 @@ During `init`, Terraform downloads providers from the registry (or a configured 
 - Using the wrong provider alias and wondering why resources land in the wrong region.
 - Running `init -upgrade` in CI without reviewing provider changelogs — can introduce breaking changes.
 - Assuming `validate` downloads or verifies providers — only `init` does.
-
-## Related Notes
-
-- [[02_Terraform_Workflow#The `terraform init` command]] — when providers are downloaded
-- [[03_Terraform_File_Structure#Common Terraform Files]] — where to place provider and version blocks
-- [[01_Fundamentals#Core Components]] — providers as a core component
 
 ## Provider Configuration in Modules
 
@@ -382,3 +376,293 @@ This example shows three reference types in one block:
 > **Exam tip:** Removing a `resource` block from configuration and running `terraform apply` schedules that resource for **destroy**. Terraform does not delete resources that are only removed from references but still declared in code.
 
 See also: [[01_Fundamentals#Resource Referencing]] and [[02_Terraform_Workflow#Dependencies]].
+
+## `data` Block
+
+The `data` block reads information Terraform needs at plan/apply time **without managing lifecycle** of that object. Terraform never creates, updates, or destroys data sources.
+
+Two common use cases:
+
+| Use case | Example | What it reads |
+|---|---|---|
+| **Existing infrastructure** | `data "aws_vpc" "shared"` | A VPC already created outside this configuration |
+| **Computed / filtered values** | `data "aws_iam_policy_document" "lambda_assume_role"` | A policy document built from HCL — not an existing AWS object |
+| **Provider defaults** | `data "aws_availability_zones" "available"` | Current account/region metadata |
+
+- Retrieve details of existing or computed values to reference in other blocks.
+- Resolve dependencies when one block needs properties from another source.
+- Avoid hardcoded values by pulling data dynamically at plan time.
+
+> **Exam tip:** `data` sources are **read-only**. Removing a `data` block does **not** destroy anything in the cloud. Contrast with `resource` blocks (see [[#`resource` Block]]).
+
+### Referencing a `data` Block
+
+Reference syntax: `data.<TYPE>.<NAME>.<ATTRIBUTE>`
+
+```hcl
+data.aws_iam_policy_document.lambda_assume_role.json
+aws_vpc.shared.id
+var.environment
+```
+
+### Usage Example
+
+```hcl
+data "aws_iam_policy_document" "lambda_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lambda_iam_role" {
+  name_prefix        = "${local.name_prefix}-lambda-role-"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+- `aws_iam_policy_document` generates JSON — it does not read an existing IAM policy from AWS.
+- The role references `.json` from the data source, creating an implicit dependency.
+
+> **Common mistake:** Treating every `data` block as "existing infrastructure." Policy documents, AMI filters, and caller identity are computed at plan time, not fetched as managed resources.
+
+> **Real-world:** Use `data` sources for shared networking (VPC, subnets) owned by a platform team. Use `resource` blocks only for infrastructure your Terraform workspace owns.
+
+See also: [[01_Fundamentals#Resource Referencing]] — `data` references follow the same dependency rules as resources.
+
+## `variable` Block
+
+The `variable` block defines **inputs** to a module or root configuration. It avoids hardcoding values and makes configurations reusable across environments (dev, staging, prod).
+
+- **Dynamic inputs** — Pass different values per environment or scenario.
+- **Centralized values** — Change once, apply everywhere the variable is referenced.
+- **Reusability** — Share the same module or pattern across projects and teams.
+
+### Usage Example
+
+```hcl
+variable "application_name" {
+  description = "Project or application name. Used as a prefix for resource naming."
+  type        = string
+  default     = "terraform-workflow"
+
+  validation {
+    condition     = length(var.application_name) >= 3 && length(var.application_name) <= 20
+    error_message = "Application name must be between 3 and 20 characters."
+  }
+}
+
+variable "environment" {
+  description = "Deployment environment (dev, staging, prod). Used as a suffix for resources."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "Invalid environment. Must be one of: dev, staging, prod."
+  }
+}
+```
+
+Reference a variable anywhere in the configuration: `var.environment`
+
+> **Exam tip:** `validation` blocks run at plan time. The `condition` must evaluate to `true` or Terraform fails before apply.
+
+### Variable Types
+
+**Primitive types** (most common on the exam):
+
+| Type | Example value |
+|---|---|
+| `string` | `"prod"` |
+| `number` | `3` |
+| `bool` | `true` |
+
+**Complex types**:
+
+| Type | Description | Example |
+|---|---|---|
+| `list(<TYPE>)` | Ordered sequence; index starts at `0` | `["us-east-1a", "us-east-1b"]` |
+| `map(<TYPE>)` | Key-value pairs | `{ dev = "t3.micro", prod = "t3.large" }` |
+| `set(<TYPE>)` | Unordered collection of unique values; not indexable | `toset(["a", "b"])` |
+| `object({...})` | Structured shape with named attributes | `object({ name = string, port = number })` |
+| `tuple([...])` | Fixed-length sequence with typed positions | `tuple([string, number])` |
+
+> **Common mistake:** Indexing a `set` directly (e.g., `my_set[0]`). Convert with `tolist()` first, or use a `list` if order matters.
+
+### Assigning Values to Variables
+
+| Method | Example | Notes |
+|---|---|---|
+| **Default in `variable` block** | `default = "dev"` | Lowest precedence |
+| **Environment variable** | `TF_VAR_environment=prod` | Must prefix with `TF_VAR_` |
+| **`.tfvars` file** | `environment = "prod"` in `terraform.tfvars` | Auto-loaded from working directory |
+| **Command line** | `terraform plan -var="environment=prod"` | Highest precedence |
+
+Use `-var-file="prod.tfvars"` to load a specific file. Exclude environment-specific `.tfvars` from version control when they contain sensitive values.
+
+### Order of Precedence
+
+When multiple sources define the same variable, **the first item in this list wins** (highest precedence):
+
+1. **Command-line flags** — `-var` and `-var-file`
+2. **`*.auto.tfvars`** — loaded automatically, lexical filename order
+3. **`terraform.tfvars`** / `terraform.tfvars.json`
+4. **Environment variables** — `TF_VAR_<name>`
+5. **`default` in the `variable` block** — used only when nothing else supplies a value
+
+```mermaid
+flowchart TD
+  A["-var / -var-file (highest)"] --> B["*.auto.tfvars"]
+  B --> C["terraform.tfvars"]
+  C --> D["TF_VAR_* env vars"]
+  D --> E["variable default (lowest)"]
+```
+
+> **Exam tip:** `-var` on the command line **always wins** over `terraform.tfvars` and `TF_VAR_*`. Defaults never override an explicitly set value.
+
+> **Real-world:** Store non-sensitive defaults in `terraform.tfvars.example` (committed). Keep real `terraform.tfvars` and secrets in `.gitignore`.
+
+Optional arguments worth knowing:
+
+- `sensitive = true` — hides value in CLI output (still stored in state).
+- `nullable = false` — variable must receive an explicit value (Terraform 1.1+).
+
+## `output` Block
+
+The `output` block exposes values **after apply** — IP addresses, ARNs, endpoints, or any attribute others need without opening the provider console.
+
+- Display key infrastructure details in the CLI after deployment.
+- Pass data from child modules to the root module (or to other modules via root outputs).
+- Feed CI/CD pipelines and automation via `terraform output -json`.
+
+Reference from the CLI: `terraform output <NAME>` or `terraform output -json`.
+
+### Usage Example
+
+```hcl
+output "lambda_metadata" {
+  description = "Lambda function metadata"
+  value = {
+    name = aws_lambda_function.basic_lambda_function.function_name
+    arn  = aws_lambda_function.basic_lambda_function.arn
+  }
+}
+
+output "dynamodb_table" {
+  description = "DynamoDB table metadata"
+  value = {
+    name = aws_dynamodb_table.basic_dynamodb_table.name
+    arn  = aws_dynamodb_table.basic_dynamodb_table.arn
+  }
+}
+```
+
+### Sensitive Outputs
+
+Mark outputs that contain secrets so Terraform redacts them in the CLI:
+
+```hcl
+output "database_endpoint" {
+  description = "Database connection endpoint"
+  value       = aws_db_instance.main.endpoint
+  sensitive   = true
+}
+```
+
+> **Exam tip:** `sensitive = true` on an `output` hides the value in normal CLI output. It does **not** remove the value from state — treat state as sensitive.
+
+### Real-World Scenarios
+
+1. Outputs print in the CLI after a successful `terraform apply`.
+2. Values are stored in **state** and retrieved with `terraform output` or `terraform output -json`.
+3. Root module **outputs** are public to module consumers. Child module outputs are passed to the root via the `module` block: `module.network.vpc_id`.
+4. Use `sensitive = true` for credentials, tokens, or private endpoints.
+
+> **Common mistake:** Expecting outputs during `terraform plan`. Outputs are evaluated at apply time and stored in state after a successful apply.
+
+## `terraform` Block
+The top-level `terraform` block sets **project-wide settings**: Terraform Core version, required providers, and backend configuration for remote state.
+
+- **Version control** — Enforce compatible Terraform and provider versions across teams.
+- **State storage** — Configure where state is persisted (local by default, remote for teams).
+- **Consistency** — Prevent "works on my machine" drift from version mismatches.
+
+> **Exam tip:** The `terraform` block is meta-configuration. It does not create infrastructure — it configures how Terraform runs. Provider _requirements_ go here; provider _settings_ (region, credentials) go in `provider` blocks (see [[#Required Providers Block]]).
+
+### Usage Example
+
+```hcl
+terraform {
+  required_version = ">= 1.5.0, < 2.0.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "my-terraform-state"
+    key            = "prod/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
+```
+
+| Setting | Purpose |
+|---|---|
+| `required_version` | Terraform CLI version constraint |
+| `required_providers` | Provider source + version constraints |
+| `backend` | Remote state location and locking |
+
+### Version Constraints
+
+Same operators apply to `required_version` and provider versions:
+
+```hcl
+required_version = "1.9.8"         # exact version only
+required_version = ">= 1.9.8"      # minimum version
+required_version = "~> 1.9.8"      # >= 1.9.8, < 1.10.0
+required_version = ">= 1.5, < 2.0" # compound constraint
+```
+
+> **Common mistake:** Confusing `required_version` (Terraform **Core** binary) with `required_providers` version (provider **plugins**). They are independent constraints.
+
+> **AWS SAA-C03 tie-in:** S3 backend + DynamoDB table for locking is the standard AWS pattern for team state management. Enable `encrypt = true` on the backend block.
+
+See also: [[03_Terraform_File_Structure#Common Terraform Files]] — where to place the `terraform` block (`versions.tf` or `terraform.tf`).
+
+## Configuration Blocks Summary
+
+| Block | Purpose | Reference syntax |
+|---|---|---|
+| `terraform` | Version, providers, backend | N/A (meta-configuration) |
+| `provider` | Platform connection settings | `provider = aws.west` (meta-argument) |
+| `variable` | Input values | `var.<name>` |
+| `output` | Exposed values after apply | `terraform output <name>` |
+| `resource` | Managed infrastructure | `<type>.<name>.<attr>` |
+| `data` | Read-only lookups | `data.<type>.<name>.<attr>` |
+
+## Related Notes
+
+- [[01_Fundamentals]] — HCL basics and core components
+- [[02_Terraform_Workflow#The `terraform init` command]] — when providers are downloaded and configuration is applied
+- [[03_Terraform_File_Structure]] — file organization, state files, and where to place blocks
+- [[00_Index]] — study progress
