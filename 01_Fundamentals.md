@@ -103,7 +103,7 @@ resource "aws_subnet" "public" {
 ## **Core Components**
 
 - **Terraform Core**. CLI tool responsible for provisioning and managing infrastructure resources defined in configuration files. Parses HCL, builds the dependency graph, compares desired vs. actual state, and orchestrates changes.
-- **Providers**. Extend Terraform functionality for specific platforms such as cloud providers or SaaS services. See [[04_Terraform_Configuration]].
+- **Providers**. Extend Terraform functionality for specific platforms such as cloud providers or SaaS services. See [[04_Terraform_Providers]].
 - **Resources**. Infrastructure components or services managed by Terraform (e.g., `aws_instance`, `aws_s3_bucket`).
 - **State**. Mechanism Terraform uses to map desired configurations to real-world resources on the target platform. See [[03_Terraform_File_Structure#Additional Files]].
 - **Modules**. Reusable and shareable blocks of code that can be called multiple times.

@@ -20,7 +20,8 @@ Built for certification preparation, long-term retention, and practical cloud en
 | [01_Fundamentals](01_Fundamentals.md) | IaC concepts, HCL basics, resource referencing, core components, Terraform editions |
 | [02_Terraform_Workflow](02_Terraform_Workflow.md) | `init`, `validate`, `fmt`, `plan`, `apply`, `destroy`, dependencies, parallelism |
 | [03_Terraform_File_Structure](03_Terraform_File_Structure.md) | File organization, state files, working directory, version control practices |
-| [04_Terraform_Configuration](04_Terraform_Configuration.md) | Providers, `required_providers`, aliases, authentication, version constraints |
+| [04_Terraform_Providers](04_Terraform_Providers.md) | Providers, `required_providers`, aliases, authentication, registries |
+| [05_Terraform_Configuration_Blocks](05_Terraform_Configuration_Blocks.md) | `resource`, `data`, `variable`, `output`, `terraform` blocks |
 
 ## Study Progress
 
@@ -29,7 +30,8 @@ Current coverage (see [00_Index.md](00_Index.md) for the live checklist):
 - [x] Fundamentals
 - [x] Core Workflow
 - [x] File Structure
-- [x] Providers _(partial)_
+- [x] Providers
+- [x] Configuration Blocks
 - [ ] Modules
 - [ ] State Management (remote backend, locking, drift)
 - [ ] Terraform Cloud / HCP Terraform
@@ -43,7 +45,8 @@ terraform-cert-notes/
 ├── 01_Fundamentals.md
 ├── 02_Terraform_Workflow.md
 ├── 03_Terraform_File_Structure.md
-├── 04_Terraform_Configuration.md
+├── 04_Terraform_Providers.md
+├── 05_Terraform_Configuration_Blocks.md
 └── README.md
 ```
 

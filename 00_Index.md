@@ -7,14 +7,16 @@ Knowledge base for **Terraform Associate 004** and related AWS/cloud engineering
 - [[01_Fundamentals]] — IaC concepts, HCL basics, core components, Terraform editions
 - [[02_Terraform_Workflow]] — init, plan, apply, destroy, validate, dependencies
 - [[03_Terraform_File_Structure]] — file organization, state files, working directory
-- [[04_Terraform_Configuration]] — providers, authentication, version constraints
+- [[04_Terraform_Providers]] — providers, authentication, aliases, registries
+- [[05_Terraform_Configuration_Blocks]] — resource, data, variable, output, terraform blocks
 
 ## Progress
 
 - [x] [[01_Fundamentals|Fundamentals]]
 - [x] [[02_Terraform_Workflow|Core Workflow]]
 - [x] [[03_Terraform_File_Structure|File Structure]]
-- [x] [[04_Terraform_Configuration|Providers]] (partial — see remaining gaps below)
+- [x] [[04_Terraform_Providers|Providers]]
+- [x] [[05_Terraform_Configuration_Blocks|Configuration Blocks]]
 - [ ] Modules
 - [ ] State Management (remote backend, locking, drift)
 - [ ] Terraform Cloud / HCP Terraform

@@ -26,7 +26,7 @@ It prepares the environment to run other Terraform commands. It downloads the re
 
 `terraform init` configures the backend for storing Terraform state and initializes the working directory (including the `.terraform/` cache).
 
-It is common to run it at the start of the project or any time you add, update, or remove providers, modules, or backend settings. Providers are usually defined in `providers.tf` or a `terraform` block (see [[04_Terraform_Configuration]]).
+It is common to run it at the start of the project or any time you add, update, or remove providers, modules, or backend settings. Providers are usually defined in `providers.tf` (see [[04_Terraform_Providers]]) or a `terraform` block (see [[05_Terraform_Configuration_Blocks#`terraform` Block]]).
 
 ### Reconfigure and upgrade flags
 
@@ -222,5 +222,6 @@ Take into account that if the resource is not removed from the configuration, th
 ## Related Notes
 
 - [[03_Terraform_File_Structure]] — where configuration and state files live
-- [[04_Terraform_Configuration]] — provider setup required before init
+- [[04_Terraform_Providers]] — provider setup required before init
+- [[05_Terraform_Configuration_Blocks]] — resource, variable, and output blocks
 - [[00_Index]] — study progress and weak areas

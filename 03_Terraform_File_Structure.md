@@ -111,7 +111,8 @@ Key rules:
 ## Related Notes
 
 - [[02_Terraform_Workflow]] — commands that operate on the working directory
-- [[04_Terraform_Configuration]] — provider and backend configuration files
+- [[04_Terraform_Providers]] — provider configuration files
+- [[05_Terraform_Configuration_Blocks#`terraform` Block]] — backend configuration
 - [[01_Fundamentals#Core Components]] — state and modules overview
 
 ## To Be Defined
